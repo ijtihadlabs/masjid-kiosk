@@ -71,7 +71,11 @@ function formatAmount(amount: number) {
 }
 
 function App() {
-  const [visibleTabIds, setVisibleTabIds] = useState<string[]>([baseTabs[0].id])
+  const [visibleTabIds, setVisibleTabIds] = useState<string[]>([
+    'daily-sadaqah',
+    'zakat',
+    'ramadan-iftaar',
+  ])
   const [activeTabId, setActiveTabId] = useState(baseTabs[0].id)
   const [stage, setStage] = useState<Stage>('home')
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
