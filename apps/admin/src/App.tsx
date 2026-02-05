@@ -153,7 +153,9 @@ const findMasjidConfig = (configs: MasjidConfig[], slug: string | null) => {
 
 function App() {
   const previewBypass =
-    window.location.hostname === 'localhost' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname === 'masjid-kiosk.ijtihadlabs.org') &&
     window.location.pathname.startsWith('/admin')
   const [masjidName, setMasjidName] = useState('Masjid Kiosk')
   const [isAuthed, setIsAuthed] = useState(() => {

@@ -91,18 +91,6 @@ const baseTabs: Tab[] = [
     subtitle: 'Emergency and community appeals as needed.',
     amounts: [10, 25, 50, 75, 100, 150],
   },
-  {
-    id: 'udhiyah',
-    label: 'أضحية (Udhiyah)',
-    subtitle: 'Name required for processing.',
-    amounts: [75, 100, 150, 200, 250, 300],
-  },
-  {
-    id: 'other',
-    label: 'أخرى (Other)',
-    subtitle: 'Masjid-admin curated causes.',
-    amounts: [5, 10, 25, 50, 100, 200],
-  },
 ]
 
 const defaultMasjid: MasjidDetails = {
@@ -947,12 +935,12 @@ function App() {
         </div>
         <div className="header-actions">
           <div className="status-pill">{statusLabel}</div>
-          {isLocalDemo && (
+          {isPreviewDemo && (
             <div className="admin-preview-wrap">
               <a className="admin-preview" href="/admin/">
                 Admin Preview
               </a>
-              <span className="demo-badge">Demo only</span>
+              <span className="demo-badge">Preview</span>
             </div>
           )}
         </div>
