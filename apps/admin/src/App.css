@@ -56,12 +56,64 @@ body {
   border-radius: 999px;
   border: 1px solid rgba(10, 122, 58, 0.2);
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .admin-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
+}
+
+.config-panel,
+.report-card {
+  grid-column: 1 / -1;
+}
+
+.config-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.config-left {
+  display: grid;
+  gap: 12px;
+}
+
+.config-right {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.config-section {
+  display: grid;
+  gap: 12px;
+}
+
+.config-section h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.config-select {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(16, 36, 32, 0.7);
+}
+
+.config-select select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 36, 32, 0.2);
+  font-size: 14px;
 }
 
 .admin-card {
@@ -121,6 +173,7 @@ body {
   display: grid;
   gap: 12px;
   margin-bottom: 12px;
+  min-width: 0;
 }
 
 .ramadan-settings label {
@@ -140,10 +193,12 @@ body {
 .ramadan-items {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .ramadan-items input {
   flex: 1;
+  min-width: 160px;
 }
 
 .ramadan-item-list {
@@ -184,6 +239,14 @@ body {
   color: rgba(16, 36, 32, 0.7);
 }
 
+.zakat-fitr-field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(16, 36, 32, 0.7);
+  margin-bottom: 12px;
+}
+
 .amount-grid-admin input,
 .zakat-quote-fields input,
 .zakat-quote-fields textarea {
@@ -221,6 +284,170 @@ body {
   padding: 10px 14px;
   border-radius: 10px;
   cursor: pointer;
+}
+
+.report-box {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  display: grid;
+  gap: 10px;
+}
+
+.report-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.report-controls label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(16, 36, 32, 0.7);
+}
+
+.report-controls input {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 36, 32, 0.2);
+  font-size: 14px;
+}
+
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.report-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.report-filters label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(16, 36, 32, 0.7);
+}
+
+.report-filters input,
+.report-filters select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 36, 32, 0.2);
+  font-size: 14px;
+}
+
+.report-table {
+  margin-top: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.report-card {
+  background: linear-gradient(140deg, #f8f4ea, #f0f4ea 60%, #e7efe5);
+  border: 1px solid rgba(10, 122, 58, 0.18);
+  box-shadow: 0 20px 48px rgba(9, 21, 17, 0.12);
+}
+
+.report-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.report-table th,
+.report-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.report-table thead th {
+  background: rgba(10, 122, 58, 0.06);
+  font-weight: 600;
+}
+
+.report-table tfoot td {
+  font-weight: 600;
+}
+
+.ghost {
+  border: 1px solid rgba(16, 36, 32, 0.2);
+  background: transparent;
+  color: var(--ink);
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.ghost.danger {
+  border-color: rgba(180, 35, 24, 0.4);
+  color: #b42318;
+}
+
+.ghost.warn {
+  border-color: rgba(180, 83, 9, 0.45);
+  color: #b45309;
+}
+
+.ghost.warn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 14px;
+}
+
+.auth-field {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: rgba(16, 36, 32, 0.7);
+}
+
+.auth-field input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 36, 32, 0.2);
+  font-size: 14px;
+}
+
+.auth-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.auth-error {
+  margin: 0;
+  color: #b42318;
+  font-size: 13px;
+}
+
+.auth-note {
+  margin: 0;
+  color: rgba(16, 36, 32, 0.6);
+  font-size: 12px;
 }
 
 @media (max-width: 720px) {

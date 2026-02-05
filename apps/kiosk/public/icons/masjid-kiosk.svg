@@ -1,0 +1,117 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#11160f" />
+      <stop offset="0.5" stop-color="#1b2216" />
+      <stop offset="1" stop-color="#0e1410" />
+    </linearGradient>
+    <radialGradient id="halo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 240) rotate(90) scale(440)">
+      <stop offset="0" stop-color="#fff3c2" stop-opacity="0.95" />
+      <stop offset="0.5" stop-color="#ffd67a" stop-opacity="0.55" />
+      <stop offset="1" stop-color="#f0a93a" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="sunrise" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe8a8" />
+      <stop offset="1" stop-color="#d8962e" />
+    </linearGradient>
+    <linearGradient id="dome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#42f28c" />
+      <stop offset="1" stop-color="#0a7a3a" />
+    </linearGradient>
+    <linearGradient id="minaret" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#33d572" />
+      <stop offset="1" stop-color="#0c5c2d" />
+    </linearGradient>
+    <linearGradient id="kiosk" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f333a" />
+      <stop offset="1" stop-color="#0f1218" />
+    </linearGradient>
+    <linearGradient id="kioskEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4d5562" />
+      <stop offset="1" stop-color="#151a22" />
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38e37d" />
+      <stop offset="1" stop-color="#13a858" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe6a1" />
+      <stop offset="0.5" stop-color="#f0c153" />
+      <stop offset="1" stop-color="#c27f12" />
+    </linearGradient>
+    <linearGradient id="goldDeep" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6d26b" />
+      <stop offset="1" stop-color="#b8740e" />
+    </linearGradient>
+    <linearGradient id="sack" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#31cf6a" />
+      <stop offset="1" stop-color="#0a7a3a" />
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.2" />
+    </filter>
+  </defs>
+
+  <rect x="32" y="32" width="960" height="960" rx="210" fill="url(#bg)" />
+  <rect x="32" y="32" width="960" height="960" rx="210" fill="url(#halo)" />
+
+  <g filter="url(#shadow)">
+    <rect x="128" y="152" width="768" height="520" rx="120" fill="url(#sunrise)" />
+    <path d="M160 642C210 520 322 436 512 436C702 436 814 520 864 642H160Z" fill="#1b5f2f" />
+    <path d="M260 610C260 474 372 370 512 370C652 370 764 474 764 610V662H260V610Z" fill="url(#dome)" />
+    <path d="M512 274L546 338H478L512 274Z" fill="#f7c44a" />
+    <circle cx="512" cy="346" r="26" fill="#1f8f48" />
+    <path d="M408 610C424 548 468 506 512 506C556 506 600 548 616 610" stroke="#1b8a45" stroke-width="12" stroke-linecap="round" />
+    <path d="M444 604C454 562 484 536 512 536C540 536 570 562 580 604" stroke="#2fd06f" stroke-width="10" stroke-linecap="round" />
+    <path d="M472 468C486 430 500 416 512 416C524 416 538 430 552 468" stroke="#2fd06f" stroke-width="12" stroke-linecap="round" />
+
+    <rect x="210" y="392" width="104" height="270" rx="30" fill="url(#minaret)" />
+    <rect x="710" y="392" width="104" height="270" rx="30" fill="url(#minaret)" />
+    <rect x="232" y="440" width="60" height="48" rx="12" fill="#0e5d2b" />
+    <rect x="732" y="440" width="60" height="48" rx="12" fill="#0e5d2b" />
+    <rect x="232" y="508" width="60" height="48" rx="12" fill="#0e5d2b" />
+    <rect x="732" y="508" width="60" height="48" rx="12" fill="#0e5d2b" />
+    <path d="M262 356L282 392H242L262 356Z" fill="#f7c44a" />
+    <path d="M762 356L782 392H742L762 356Z" fill="#f7c44a" />
+  </g>
+
+  <g filter="url(#shadow)">
+    <path d="M190 624L360 574C386 566 412 586 412 614V884C412 910 392 930 366 930H216C190 930 170 910 170 884V666C170 646 178 632 190 624Z" fill="url(#kiosk)" />
+    <path d="M190 624L360 574C386 566 412 586 412 614V646L190 694V624Z" fill="url(#kioskEdge)" />
+    <rect x="210" y="660" width="160" height="96" rx="18" fill="#1c2720" />
+    <rect x="226" y="676" width="128" height="64" rx="14" fill="url(#screen)" />
+    <path d="M244 708L266 730L306 684" stroke="#e9ffd4" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="210" y="776" width="160" height="32" rx="10" fill="#2b3240" />
+    <rect x="210" y="822" width="160" height="66" rx="12" fill="#151b25" />
+    <rect x="228" y="844" width="56" height="18" rx="9" fill="#1f2633" />
+    <rect x="296" y="844" width="52" height="18" rx="9" fill="#1f2633" />
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="400" y="664" width="252" height="188" rx="32" fill="url(#gold)" />
+    <rect x="426" y="692" width="200" height="28" rx="12" fill="#f7d36b" opacity="0.8" />
+    <rect x="426" y="736" width="200" height="18" rx="9" fill="#b97712" opacity="0.55" />
+    <circle cx="526" cy="654" r="34" fill="#f7d36b" stroke="#c88716" stroke-width="8" />
+    <path d="M518 654H534" stroke="#b36c15" stroke-width="8" stroke-linecap="round" />
+    <rect x="496" y="624" width="60" height="18" rx="8" fill="#f4c255" />
+    <path d="M526 576L552 628H500L526 576Z" fill="#f4c255" />
+    <path d="M440 800H612" stroke="#b06f14" stroke-width="8" stroke-linecap="round" opacity="0.45" />
+  </g>
+
+  <g filter="url(#shadow)">
+    <path d="M696 664C696 618 742 582 800 582C858 582 904 618 904 664V832C904 858 884 878 858 878H742C716 878 696 858 696 832V664Z" fill="url(#sack)" />
+    <path d="M800 554L828 604H772L800 554Z" fill="#ffd56a" />
+    <circle cx="800" cy="752" r="40" fill="#0e5e2b" />
+    <path d="M800 724L808 744H830L813 756L820 776L800 764L780 776L787 756L770 744H792L800 724Z" fill="#e6ffcf" />
+    <path d="M780 702C798 690 820 690 838 702" stroke="#d8fbd8" stroke-width="12" stroke-linecap="round" />
+  </g>
+
+  <g filter="url(#shadow)">
+    <circle cx="712" cy="846" r="52" fill="url(#goldDeep)" />
+    <circle cx="800" cy="874" r="38" fill="url(#goldDeep)" />
+    <circle cx="764" cy="820" r="24" fill="url(#goldDeep)" />
+  </g>
+
+  <path d="M260 308L512 200L764 308" stroke="#ffe6a1" stroke-width="10" stroke-linecap="round" opacity="0.4" />
+  <path d="M292 328L512 238L732 328" stroke="#ffe6a1" stroke-width="8" stroke-linecap="round" opacity="0.3" />
+</svg>

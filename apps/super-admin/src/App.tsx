@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react'
 import './App.css'
 
+const SUPER_ADMIN_USERNAME = 'Sajib143'
+const SUPER_ADMIN_PASSWORD = 'N@ureen9620'
+
 type Masjid = {
   id: string
   name: string
@@ -45,6 +48,12 @@ function App() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [registrationLink, setRegistrationLink] = useState('')
   const [showRegistration, setShowRegistration] = useState(false)
+  const [isAuthed, setIsAuthed] = useState(() => {
+    return window.sessionStorage.getItem('superAdminAuthed') === 'true'
+  })
+  const [loginUser, setLoginUser] = useState('')
+  const [loginPass, setLoginPass] = useState('')
+  const [loginError, setLoginError] = useState('')
   const [formError, setFormError] = useState('')
   const [formValues, setFormValues] = useState({
     masjidName: '',
@@ -66,6 +75,17 @@ function App() {
 
   const featuresLabel = useMemo(() => ['Sadaqah'], [])
 
+  const handleLogin = () => {
+    if (loginUser.trim() === SUPER_ADMIN_USERNAME && loginPass === SUPER_ADMIN_PASSWORD) {
+      window.sessionStorage.setItem('superAdminAuthed', 'true')
+      setIsAuthed(true)
+      setLoginError('')
+      setLoginPass('')
+      return
+    }
+    setLoginError('Invalid username or password.')
+  }
+
   const handleGenerateLink = () => {
     if (!inviteEmail) return
     const token = Math.random().toString(36).slice(2)
@@ -74,17 +94,70 @@ function App() {
     setShowRegistration(true)
   }
 
+  if (!isAuthed) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <p className="super-eyebrow">Super Admin</p>
+          <h1>Masjid Kiosk Platform</h1>
+          <p className="super-subtitle">Enter your super admin credentials to continue.</p>
+          <label className="auth-field">
+            Username
+            <input
+              type="text"
+              value={loginUser}
+              onChange={(event) => setLoginUser(event.target.value)}
+              placeholder="Username"
+              autoComplete="username"
+            />
+          </label>
+          <label className="auth-field">
+            Password
+            <input
+              type="password"
+              value={loginPass}
+              onChange={(event) => setLoginPass(event.target.value)}
+              placeholder="Password"
+              autoComplete="current-password"
+            />
+          </label>
+          {loginError && <p className="auth-error">{loginError}</p>}
+          <div className="auth-actions">
+            <button className="admin-action" onClick={handleLogin}>
+              Sign in
+            </button>
+          </div>
+          <p className="auth-note">Super admin access is restricted.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="super-shell">
       <header className="super-header">
         <div>
           <p className="super-eyebrow">Super Admin</p>
-          <h1>Ijtihad Labs Platform</h1>
+          <h1>Masjid Kiosk Platform</h1>
           <p className="super-subtitle">
             Register masjids, manage admins, and monitor system health.
           </p>
         </div>
-        <div className="super-badge">Main Branch Only</div>
+        <div className="super-badge">
+          <span>Authenticated</span>
+          <button
+            className="ghost"
+            onClick={() => {
+              window.sessionStorage.removeItem('superAdminAuthed')
+              setIsAuthed(false)
+              setLoginUser('')
+              setLoginPass('')
+              setLoginError('')
+            }}
+          >
+            Log out
+          </button>
+        </div>
       </header>
 
       <main className="super-grid">

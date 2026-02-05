@@ -31,6 +31,12 @@ http://localhost:5173/admin/
 http://localhost:5173/super-admin/
 ```
 
+Preview admin access (demo only):
+
+- The kiosk header shows an “Admin Preview” button linking to `/admin/`.
+- Admin login is bypassed only on `localhost` for demos.
+- Super admin remains protected and is not linked from the kiosk.
+
 ## Build
 
 ```bash

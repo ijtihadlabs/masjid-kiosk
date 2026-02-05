@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import masjidLogo from './assets/al-madani-masjid.svg'
+import alMadniLogo from './assets/al-madani-masjid.svg'
 import './App.css'
 
 type Tab = {
@@ -10,6 +10,54 @@ type Tab = {
 }
 
 type Stage = 'home' | 'processing' | 'success' | 'declined'
+
+type KioskTransaction = {
+  id: string
+  tabId: string
+  tabLabel: string
+  amount: number
+  timestamp: string
+  meta?: Record<string, string | number | string[]>
+}
+
+type MasjidDetails = {
+  name: string
+  address: string
+  phone: string
+  email: string
+  charityNumber: string
+  location: string
+  logoKey?: string
+  logoUrl?: string
+}
+
+type MasjidConfig = MasjidDetails & {
+  slug: string
+  aliases?: string[]
+  tabs?: string[]
+  zakatFitrAmount?: number
+  zakatFitrQuoteArabic?: string
+  zakatFitrQuoteTranslation?: string
+  zakatFitrQuoteRef?: string
+  specialAppealName?: string
+  specialAppealTarget?: number
+  specialAppealAmounts?: number[]
+  ramadanStartDate?: string
+  ramadanDailyTarget?: number
+  ramadanSponsorPeople?: number
+  ramadanSponsorItems?: string[]
+  sadaqahAmounts?: number[]
+  sadaqahQuoteArabic?: string
+  sadaqahQuoteTranslation?: string
+  sadaqahQuoteRef?: string
+  zakatQuoteArabic?: string
+  zakatQuoteTranslation?: string
+  zakatQuoteRef?: string
+}
+
+type MasjidConfigResponse = {
+  masjids: MasjidConfig[]
+}
 
 const baseTabs: Tab[] = [
   {
@@ -57,20 +105,56 @@ const baseTabs: Tab[] = [
   },
 ]
 
-const masjid = {
-  name: 'Al-Madani Masjid',
-  address: '1 Whittle Parkway, Slough, Berkshire, SL1 6FE, United Kingdom',
-  phone: '01628 669756',
-  email: 'masjid@al-madani.org',
-  charityNumber: '1079416',
-  location: 'Slough, United Kingdom',
+const defaultMasjid: MasjidDetails = {
+  name: 'Masjid Kiosk',
+  address: '',
+  phone: '',
+  email: '',
+  charityNumber: '',
+  location: '',
 }
+
+const resolveMasjidSlug = () => {
+  const params = new URLSearchParams(window.location.search)
+  const querySlug = params.get('masjid')
+  if (querySlug) return querySlug.toLowerCase()
+
+  const hostname = window.location.hostname.toLowerCase()
+  const baseDomain = 'masjid-kiosk.ijtihadlabs.org'
+  if (!hostname.endsWith(baseDomain)) return null
+  if (hostname === baseDomain) return null
+  const slug = hostname.replace(`.${baseDomain}`, '')
+  return slug || null
+}
+
+const findMasjidConfig = (configs: MasjidConfig[], slug: string | null) => {
+  if (!slug) return null
+  const normalized = slug.toLowerCase()
+  return (
+    configs.find((masjid) => masjid.slug.toLowerCase() === normalized) ||
+    configs.find((masjid) =>
+      masjid.aliases?.some((alias) => alias.toLowerCase() === normalized)
+    ) ||
+    null
+  )
+}
+
+const logoOverrides: Record<string, string> = {
+  'al-madni': alMadniLogo,
+  'al-madani': alMadniLogo,
+}
+
+const platformLogo = '/icons/image.png'
 
 function formatAmount(amount: number) {
   return `£${amount}`
 }
 
 function App() {
+  const [masjid, setMasjid] = useState<MasjidDetails>(defaultMasjid)
+  const [masjidState, setMasjidState] = useState<'loading' | 'ready' | 'missing'>(
+    'loading'
+  )
   const [visibleTabIds, setVisibleTabIds] = useState<string[]>([
     'daily-sadaqah',
     'zakat',
@@ -107,6 +191,23 @@ function App() {
     'Take from their wealth a charity by which you purify them and cause them to grow.'
   )
   const [zakatQuoteRef, setZakatQuoteRef] = useState('Quran 9:103')
+  const [zakatFitrAmount, setZakatFitrAmount] = useState(5)
+  const [zakatFitrPeople, setZakatFitrPeople] = useState('')
+  const [zakatFitrQuoteArabic, setZakatFitrQuoteArabic] = useState(
+    'طُهْرَةٌ لِلصَّائِمِ مِنَ اللَّغْوِ وَالرَّفَثِ، وَطُعْمَةٌ لِلْمَسَاكِينِ'
+  )
+  const [zakatFitrQuoteTranslation, setZakatFitrQuoteTranslation] = useState(
+    'A purification for the fasting person from idle talk and obscenity, and a meal for the poor.'
+  )
+  const [zakatFitrQuoteRef, setZakatFitrQuoteRef] = useState('Sunan Abi Dawud')
+  const [specialAppealName, setSpecialAppealName] = useState('Special Appeal')
+  const [specialAppealTarget, setSpecialAppealTarget] = useState(15000)
+  const [specialAppealAmounts, setSpecialAppealAmounts] = useState<number[]>([50, 100, 250])
+  const [specialAppealProgress, setSpecialAppealProgress] = useState(0)
+  const [pendingSpecialAppealAmount, setPendingSpecialAppealAmount] = useState<number | null>(
+    null
+  )
+  const successLoggedRef = useRef(false)
   const [selectedRamadanDays, setSelectedRamadanDays] = useState<number[]>([])
   const [ramadanAmount, setRamadanAmount] = useState('')
   const [pendingRamadanContribution, setPendingRamadanContribution] = useState<
@@ -119,6 +220,123 @@ function App() {
     setVisibleTabIds(nextIds)
     setActiveTabId((current) => (nextIds.includes(current) ? current : nextIds[0]))
   }, [])
+
+  useEffect(() => {
+    const loadMasjidConfig = async () => {
+      const slug = resolveMasjidSlug()
+      if (!slug) {
+        setMasjidState('missing')
+        return
+      }
+
+      try {
+        const response = await fetch('/masjids.json')
+        if (!response.ok) {
+          throw new Error('Failed to load masjids.json')
+        }
+        const data = (await response.json()) as MasjidConfigResponse
+        const match = findMasjidConfig(data.masjids || [], slug)
+        if (!match) {
+          setMasjidState('missing')
+          return
+        }
+
+        setMasjid({ ...defaultMasjid, ...match })
+        setMasjidState('ready')
+
+        const hasLocal = (key: string) => window.localStorage.getItem(key) !== null
+
+        if (match.tabs && match.tabs.length > 0 && !hasLocal('kioskTabVisibility')) {
+          applyVisibility(match.tabs)
+        }
+
+        if (Number.isFinite(match.zakatFitrAmount) && !hasLocal('zakatFitrAmount')) {
+          const value = Number(match.zakatFitrAmount)
+          if (value > 0) {
+            setZakatFitrAmount(value)
+          }
+        }
+
+        if (match.ramadanStartDate && !hasLocal('ramadanStartDate')) {
+          const parsed = new Date(match.ramadanStartDate)
+          if (!Number.isNaN(parsed.getTime())) {
+            setRamadanStartDate(parsed)
+          }
+        }
+
+        if (Number.isFinite(match.ramadanDailyTarget) && !hasLocal('ramadanDailyTarget')) {
+          setRamadanDailyTarget(match.ramadanDailyTarget || 0)
+        }
+
+        if (
+          Number.isFinite(match.ramadanSponsorPeople) &&
+          !hasLocal('ramadanSponsorPeople')
+        ) {
+          setRamadanSponsorPeople(match.ramadanSponsorPeople || null)
+        }
+
+        if (match.ramadanSponsorItems && !hasLocal('ramadanSponsorItems')) {
+          setRamadanSponsorItems(match.ramadanSponsorItems)
+        }
+
+        if (match.sadaqahAmounts && !hasLocal('sadaqahAmounts')) {
+          setSadaqahAmounts(match.sadaqahAmounts)
+        }
+
+        if (match.sadaqahQuoteArabic && !hasLocal('sadaqahQuoteArabic')) {
+          setSadaqahQuoteArabic(match.sadaqahQuoteArabic)
+        }
+
+        if (match.sadaqahQuoteTranslation && !hasLocal('sadaqahQuoteTranslation')) {
+          setSadaqahQuoteTranslation(match.sadaqahQuoteTranslation)
+        }
+
+        if (match.sadaqahQuoteRef && !hasLocal('sadaqahQuoteRef')) {
+          setSadaqahQuoteRef(match.sadaqahQuoteRef)
+        }
+
+        if (match.zakatQuoteArabic && !hasLocal('zakatQuoteArabic')) {
+          setZakatQuoteArabic(match.zakatQuoteArabic)
+        }
+
+        if (match.zakatQuoteTranslation && !hasLocal('zakatQuoteTranslation')) {
+          setZakatQuoteTranslation(match.zakatQuoteTranslation)
+        }
+
+        if (match.zakatQuoteRef && !hasLocal('zakatQuoteRef')) {
+          setZakatQuoteRef(match.zakatQuoteRef)
+        }
+        if (match.zakatFitrQuoteArabic && !hasLocal('zakatFitrQuoteArabic')) {
+          setZakatFitrQuoteArabic(match.zakatFitrQuoteArabic)
+        }
+        if (match.zakatFitrQuoteTranslation && !hasLocal('zakatFitrQuoteTranslation')) {
+          setZakatFitrQuoteTranslation(match.zakatFitrQuoteTranslation)
+        }
+        if (match.zakatFitrQuoteRef && !hasLocal('zakatFitrQuoteRef')) {
+          setZakatFitrQuoteRef(match.zakatFitrQuoteRef)
+        }
+        if (match.specialAppealName && !hasLocal('specialAppealName')) {
+          setSpecialAppealName(match.specialAppealName)
+        }
+        if (Number.isFinite(match.specialAppealTarget) && !hasLocal('specialAppealTarget')) {
+          const target = Number(match.specialAppealTarget)
+          if (target > 0) {
+            setSpecialAppealTarget(target)
+          }
+        }
+        if (match.specialAppealAmounts && !hasLocal('specialAppealAmounts')) {
+          if (match.specialAppealAmounts.length === 3) {
+            setSpecialAppealAmounts(match.specialAppealAmounts)
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load masjid config', error)
+        setMasjidState('missing')
+      }
+    }
+
+    loadMasjidConfig()
+  }, [applyVisibility])
 
   useEffect(() => {
     const loadFromStorage = () => {
@@ -197,6 +415,43 @@ function App() {
       }
       if (typeof event.data?.zakatQuoteRef === 'string') {
         setZakatQuoteRef(event.data.zakatQuoteRef)
+      }
+      if (Number.isFinite(event.data?.zakatFitrAmount)) {
+        const value = Number(event.data.zakatFitrAmount)
+        if (value > 0) {
+          setZakatFitrAmount(value)
+        }
+      }
+      if (typeof event.data?.zakatFitrQuoteArabic === 'string') {
+        setZakatFitrQuoteArabic(event.data.zakatFitrQuoteArabic)
+      }
+      if (typeof event.data?.zakatFitrQuoteTranslation === 'string') {
+        setZakatFitrQuoteTranslation(event.data.zakatFitrQuoteTranslation)
+      }
+      if (typeof event.data?.zakatFitrQuoteRef === 'string') {
+        setZakatFitrQuoteRef(event.data.zakatFitrQuoteRef)
+      }
+      if (typeof event.data?.specialAppealName === 'string') {
+        setSpecialAppealName(event.data.specialAppealName)
+      }
+      if (Number.isFinite(event.data?.specialAppealTarget)) {
+        const target = Number(event.data.specialAppealTarget)
+        if (target > 0) {
+          setSpecialAppealTarget(target)
+        }
+      }
+      if (Array.isArray(event.data?.specialAppealAmounts)) {
+        const parsed = event.data.specialAppealAmounts.map((value: number) => Number(value) || 0)
+        if (parsed.length === 3 && parsed.every((value: number) => value > 0)) {
+          setSpecialAppealAmounts(parsed)
+        }
+      }
+      if (Number.isFinite(event.data?.specialAppealProgress)) {
+        const progress = Number(event.data.specialAppealProgress)
+        if (progress >= 0) {
+          setSpecialAppealProgress(progress)
+          window.localStorage.setItem('specialAppealProgress', String(progress))
+        }
       }
       const progress = event.data?.ramadanProgress
       if (Array.isArray(progress) && progress.length === 30) {
@@ -284,6 +539,46 @@ function App() {
     if (storedArabic) setZakatQuoteArabic(storedArabic)
     if (storedTranslation) setZakatQuoteTranslation(storedTranslation)
     if (storedRef) setZakatQuoteRef(storedRef)
+    const storedFitr = window.localStorage.getItem('zakatFitrAmount')
+    if (storedFitr) {
+      const parsed = Number.parseFloat(storedFitr)
+      if (Number.isFinite(parsed) && parsed > 0) {
+        setZakatFitrAmount(parsed)
+      }
+    }
+    const storedFitrArabic = window.localStorage.getItem('zakatFitrQuoteArabic')
+    const storedFitrTranslation = window.localStorage.getItem('zakatFitrQuoteTranslation')
+    const storedFitrRef = window.localStorage.getItem('zakatFitrQuoteRef')
+    if (storedFitrArabic) setZakatFitrQuoteArabic(storedFitrArabic)
+    if (storedFitrTranslation) setZakatFitrQuoteTranslation(storedFitrTranslation)
+    if (storedFitrRef) setZakatFitrQuoteRef(storedFitrRef)
+    const storedAppealName = window.localStorage.getItem('specialAppealName')
+    if (storedAppealName) setSpecialAppealName(storedAppealName)
+    const storedAppealTarget = window.localStorage.getItem('specialAppealTarget')
+    if (storedAppealTarget) {
+      const parsed = Number.parseInt(storedAppealTarget, 10)
+      if (Number.isFinite(parsed) && parsed > 0) {
+        setSpecialAppealTarget(parsed)
+      }
+    }
+    const storedAppealAmounts = window.localStorage.getItem('specialAppealAmounts')
+    if (storedAppealAmounts) {
+      try {
+        const parsed = JSON.parse(storedAppealAmounts)
+        if (Array.isArray(parsed) && parsed.length === 3) {
+          setSpecialAppealAmounts(parsed.map((value) => Number(value) || 0))
+        }
+      } catch (error) {
+        console.warn('Failed to parse specialAppealAmounts', error)
+      }
+    }
+    const storedAppealProgress = window.localStorage.getItem('specialAppealProgress')
+    if (storedAppealProgress) {
+      const parsed = Number.parseInt(storedAppealProgress, 10)
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        setSpecialAppealProgress(parsed)
+      }
+    }
   }, [])
 
   const tabs = useMemo(() => {
@@ -330,16 +625,26 @@ function App() {
 
   useEffect(() => {
     if (stage !== 'success' || !pendingRamadanContribution) return
-    setRamadanProgress((current) => {
-      const next = [...current]
-      pendingRamadanContribution.allocations.forEach(({ dayIndex, amount }) => {
-        next[dayIndex] = Math.min(ramadanDailyTarget, (next[dayIndex] || 0) + amount)
+      setRamadanProgress((current) => {
+        const next = [...current]
+        pendingRamadanContribution.allocations.forEach(({ dayIndex, amount }) => {
+          next[dayIndex] = (next[dayIndex] || 0) + amount
+        })
+        window.localStorage.setItem('ramadanProgress', JSON.stringify(next))
+        return next
       })
-      window.localStorage.setItem('ramadanProgress', JSON.stringify(next))
-      return next
-    })
     setPendingRamadanContribution(null)
   }, [stage, pendingRamadanContribution, ramadanDailyTarget])
+
+  useEffect(() => {
+    if (stage !== 'success' || pendingSpecialAppealAmount === null) return
+    setSpecialAppealProgress((current) => {
+      const next = Math.min(specialAppealTarget, current + pendingSpecialAppealAmount)
+      window.localStorage.setItem('specialAppealProgress', String(next))
+      return next
+    })
+    setPendingSpecialAppealAmount(null)
+  }, [stage, pendingSpecialAppealAmount, specialAppealTarget])
 
   useEffect(() => {
     if (stage !== 'declined') return
@@ -374,8 +679,11 @@ function App() {
     setReceiptPhone('')
     setReceiptMessage('')
     setPendingRamadanContribution(null)
+    setPendingSpecialAppealAmount(null)
     setSelectedRamadanDays([])
     setRamadanAmount('')
+    setZakatFitrPeople('')
+    successLoggedRef.current = false
   }
 
   const isValidEmail = (value: string) =>
@@ -432,6 +740,7 @@ function App() {
     })
   }, [ramadanStartDate])
 
+
   const ramadanSponsoredCount = useMemo(() => {
     return ramadanProgress.filter((value) => value >= ramadanDailyTarget).length
   }, [ramadanProgress, ramadanDailyTarget])
@@ -452,21 +761,79 @@ function App() {
       if (amount <= 0) return allocations
 
       const sortedSelected = [...selectedDays].sort((a, b) => a - b)
-      const remainingDays = Array.from({ length: 30 }, (_, index) => index).filter(
-        (index) => !sortedSelected.includes(index)
-      )
-      const candidateDays = [...sortedSelected, ...remainingDays]
+      const allDays = Array.from({ length: 30 }, (_, index) => index)
+      const remainingDays = allDays.filter((index) => !sortedSelected.includes(index))
 
+      const getCapacity = (dayIndex: number) =>
+        Math.max(0, ramadanDailyTarget - (ramadanProgress[dayIndex] || 0))
+
+      const addAllocation = (dayIndex: number, amountToAdd: number) => {
+        if (amountToAdd <= 0) return
+        const existing = allocations.find((item) => item.dayIndex === dayIndex)
+        if (existing) {
+          existing.amount += amountToAdd
+        } else {
+          allocations.push({ dayIndex, amount: amountToAdd })
+        }
+      }
+
+      const distributeEvenly = (
+        days: { dayIndex: number; capacity: number }[],
+        total: number
+      ) => {
+        let remaining = total
+        let pool = days.filter((day) => day.capacity > 0)
+        while (remaining > 0 && pool.length > 0) {
+          const share = Math.ceil(remaining / pool.length)
+          const nextPool: { dayIndex: number; capacity: number }[] = []
+          pool.forEach((day) => {
+            if (remaining <= 0) return
+            const applied = Math.min(day.capacity, share)
+            if (applied > 0) {
+              addAllocation(day.dayIndex, applied)
+              remaining -= applied
+              day.capacity -= applied
+            }
+            if (day.capacity > 0) nextPool.push(day)
+          })
+          pool = nextPool
+        }
+        return remaining
+      }
+
+      const selectedCaps = sortedSelected
+        .map((dayIndex) => ({ dayIndex, capacity: getCapacity(dayIndex) }))
+        .filter((day) => day.capacity > 0)
+
+      const selectedCapacityTotal = selectedCaps.reduce((sum, item) => sum + item.capacity, 0)
       let remaining = amount
-      candidateDays.forEach((dayIndex) => {
-        if (remaining <= 0) return
-        const currentRaised = ramadanProgress[dayIndex] || 0
-        const capacity = Math.max(0, ramadanDailyTarget - currentRaised)
-        if (capacity <= 0) return
-        const applied = Math.min(remaining, capacity)
-        allocations.push({ dayIndex, amount: applied })
-        remaining -= applied
-      })
+
+      if (selectedCapacityTotal > 0) {
+        const appliedToSelected = Math.min(remaining, selectedCapacityTotal)
+        distributeEvenly(selectedCaps, appliedToSelected)
+        remaining -= appliedToSelected
+      }
+
+      if (remaining > 0) {
+        remainingDays.forEach((dayIndex) => {
+          if (remaining <= 0) return
+          const capacity = getCapacity(dayIndex)
+          if (capacity <= 0) return
+          const applied = Math.min(remaining, capacity)
+          addAllocation(dayIndex, applied)
+          remaining -= applied
+        })
+      }
+
+      if (remaining > 0) {
+        const fallbackDay = remainingDays[0] ?? sortedSelected[0]
+        if (typeof fallbackDay === 'number') {
+          addAllocation(fallbackDay, remaining)
+          remaining = 0
+        }
+      }
+
+      return allocations
 
       return allocations
     },
@@ -476,21 +843,109 @@ function App() {
   const ramadanAllocationPreview = useMemo(() => {
     const normalized = Number.parseInt(ramadanAmount, 10)
     if (!Number.isFinite(normalized) || normalized <= 0) return []
-    if (selectedRamadanDays.length === 0) return []
     return allocateRamadanAmount(normalized, selectedRamadanDays)
   }, [allocateRamadanAmount, ramadanAmount, selectedRamadanDays])
+
+  const statusLabel =
+    masjidState === 'missing'
+      ? 'Masjid not configured'
+      : masjidState === 'loading'
+        ? 'Loading masjid'
+        : 'Ready for contactless'
+
+  const logoSource =
+    masjid.logoUrl || (masjid.logoKey ? logoOverrides[masjid.logoKey] : undefined) ||
+    platformLogo
+  const logoAlt = masjid.logoUrl || masjid.logoKey ? `${masjid.name} logo` : 'Masjid kiosk icon'
+  const footerContact = [masjid.phone, masjid.email].filter(Boolean).join(' · ')
+  const charityLine = masjid.charityNumber
+    ? `Payments go directly to the masjid account. Charity no. ${masjid.charityNumber}.`
+    : 'Payments go directly to the masjid account.'
+  const currentYear = new Date().getFullYear()
+  const zakatFitrPeopleCount = Number.parseInt(zakatFitrPeople, 10)
+  const zakatFitrTotal = Number.isFinite(zakatFitrPeopleCount)
+    ? zakatFitrPeopleCount * zakatFitrAmount
+    : 0
+  const canPayZakatFitr = zakatFitrPeopleCount > 0
+  const specialAppealPercent =
+    specialAppealTarget > 0
+      ? Math.min(100, Math.round((specialAppealProgress / specialAppealTarget) * 100))
+      : 0
+  const ramadanTargetTotal = ramadanDailyTarget * 30
+  const ramadanExcess = Math.max(0, ramadanTotalRaised - ramadanTargetTotal)
+
+  const logTransaction = useCallback(() => {
+    if (successLoggedRef.current || !selectedAmount) return
+    let existing: KioskTransaction[] = []
+    try {
+      const stored = window.localStorage.getItem('kioskTransactions')
+      existing = stored ? JSON.parse(stored) : []
+    } catch (error) {
+      existing = []
+    }
+    const tabLabel = activeTab?.label ?? activeTabId
+    const meta: Record<string, string | number | string[]> = {}
+    if (activeTabId === 'zakat-fitr') {
+      meta.people = zakatFitrPeopleCount || 0
+      meta.perPerson = zakatFitrAmount
+    }
+    if (activeTabId === 'ramadan-iftaar') {
+      if (pendingRamadanContribution?.allocations?.length) {
+        meta.allocations = pendingRamadanContribution.allocations.map(
+          ({ dayIndex, amount }) => `Day ${dayIndex + 1} £${amount}`
+        )
+      } else {
+        meta.days = selectedRamadanDays.map((day) => `Day ${day + 1}`)
+      }
+    }
+    if (activeTabId === 'special-appeals') {
+      meta.appealName = specialAppealName
+    }
+    const transaction: KioskTransaction = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      tabId: activeTabId,
+      tabLabel,
+      amount: selectedAmount,
+      timestamp: new Date().toISOString(),
+      meta,
+    }
+    window.localStorage.setItem(
+      'kioskTransactions',
+      JSON.stringify([transaction, ...existing])
+    )
+    successLoggedRef.current = true
+  }, [
+    activeTab,
+    activeTabId,
+    pendingRamadanContribution,
+    zakatFitrAmount,
+    zakatFitrPeopleCount,
+    selectedAmount,
+    selectedRamadanDays,
+    specialAppealName,
+  ])
+
+  const handlePaymentSuccess = () => {
+    logTransaction()
+    setStage('success')
+  }
 
   return (
     <div className="kiosk-shell">
       <header className="kiosk-header">
         <div className="brand">
-          <img src={masjidLogo} className="brand-logo" alt="Al-Madani Masjid" />
+          <img src={logoSource} className="brand-logo" alt={logoAlt} />
           <div>
             <p className="brand-eyebrow">بِسْمِ ٱللَّٰهِ (Bismillah)</p>
             <h1>{masjid.name}</h1>
           </div>
         </div>
-        <div className="status-pill">Ready for contactless</div>
+        <div className="header-actions">
+          <div className="status-pill">{statusLabel}</div>
+          <a className="admin-preview" href="/admin/">
+            Admin Preview
+          </a>
+        </div>
       </header>
 
       <div className="tab-strip">
@@ -525,11 +980,13 @@ function App() {
         </button>
       </div>
 
-      <main className="kiosk-content">
+      <main className={`kiosk-content ${activeTabId === 'zakat-fitr' ? 'fitr-layout' : ''}`}>
         {activeTabId === 'ramadan-iftaar' ? (
           <section className="ramadan-top">
             <div>
-              <h2>{activeTab.label}</h2>
+              <div className="tab-title-box fitr-highlight ramadan-title-box">
+                <h2 className="tab-title">{activeTab.label}</h2>
+              </div>
               <div className="quote-card ramadan-quote">
                 <p className="quote">
                   “Whoever feeds a fasting person will have a reward like theirs.”
@@ -543,62 +1000,79 @@ function App() {
                 </div>
               )}
             </div>
-            <div className="ramadan-amount-inline">
-              <p className="custom-title">Sponsor an Iftaar day</p>
-              <p className="custom-note">
-                Select a day below and enter your amount.
-              </p>
-              <p className="custom-note">Selected: {selectedRamadanDays.length || 0}</p>
-              <div className="ramadan-input">
-                <span className="currency">£</span>
-                <input
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="Enter amount"
-                  value={ramadanAmount}
-                  onChange={(event) => {
-                    const value = event.target.value.replace(/[^0-9]/g, '')
-                    setRamadanAmount(value)
-                  }}
-                />
-                <button
-                  className="custom-submit"
-                  onClick={() => {
-                    const normalized = Number.parseInt(ramadanAmount, 10)
-                    if (!Number.isFinite(normalized) || normalized <= 0) return
-                    if (selectedRamadanDays.length === 0) return
+            <div className="ramadan-right">
+              <div className="ramadan-amount-inline">
+                <p className="custom-title">Sponsor an Iftaar day</p>
+                <p className="custom-note">
+                  Select a day below and enter your amount.
+                </p>
+                <p className="custom-note">Selected: {selectedRamadanDays.length || 0}</p>
+                <div className="ramadan-input">
+                  <span className="currency">£</span>
+                  <input
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="Enter amount"
+                    value={ramadanAmount}
+                    onChange={(event) => {
+                      const value = event.target.value.replace(/[^0-9]/g, '')
+                      setRamadanAmount(value)
+                    }}
+                  />
+                  <button
+                    className="custom-submit"
+                    onClick={() => {
+                      const normalized = Number.parseInt(ramadanAmount, 10)
+                      if (!Number.isFinite(normalized) || normalized <= 0) return
                     const allocations = allocateRamadanAmount(
                       normalized,
                       selectedRamadanDays
                     )
-                    if (allocations.length === 0) return
-                    setPendingRamadanContribution({ allocations })
-                    handleAmountSelect(normalized)
-                  }}
-                >
-                  Proceed
-                </button>
+                      if (allocations.length === 0) return
+                      setPendingRamadanContribution({ allocations })
+                      handleAmountSelect(normalized)
+                    }}
+                  >
+                    Proceed
+                  </button>
+                </div>
+                {ramadanAllocationPreview.length > 0 && (
+                  <p className="ramadan-allocation">
+                    Allocation: {ramadanAllocationPreview
+                      .slice(0, 4)
+                      .map((item) => `Day ${item.dayIndex + 1} £${item.amount}`)
+                      .join(', ')}
+                    {ramadanAllocationPreview.length > 4 ? ' …' : ''}
+                  </p>
+                )}
               </div>
-              {ramadanAllocationPreview.length > 0 && (
-                <p className="ramadan-allocation">
-                  Allocation: {ramadanAllocationPreview
-                    .slice(0, 4)
-                    .map((item) => `Day ${item.dayIndex + 1} £${item.amount}`)
-                    .join(', ')}
-                  {ramadanAllocationPreview.length > 4 ? ' …' : ''}
-                </p>
-              )}
-            </div>
-            <div className="ramadan-summary">
-              Sponsored {ramadanSponsoredCount}/30 · Raised {formatAmount(ramadanTotalRaised)} ·
-              Target £{ramadanDailyTarget}/day
+              <div className="ramadan-summary">
+                Sponsored {ramadanSponsoredCount}/30 · Raised {formatAmount(ramadanTotalRaised)} ·
+                Target £{ramadanDailyTarget}/day
+                {ramadanExcess > 0 ? ` · Excess ${formatAmount(ramadanExcess)}` : ''}
+              </div>
             </div>
           </section>
-        ) : (
-          <section className="cause-panel">
+        ) : activeTabId === 'zakat-fitr' || activeTabId === 'special-appeals' ? null : (
+          <section
+            className={`cause-panel ${
+              activeTabId === 'daily-sadaqah' || activeTabId === 'zakat'
+                ? 'cause-panel--highlight'
+                : ''
+            }`}
+          >
             <div>
-              <h2>{activeTab.label}</h2>
-              <p className="cause-subtitle">{activeTab.subtitle}</p>
+              {activeTabId === 'daily-sadaqah' || activeTabId === 'zakat' ? (
+                <div className="tab-title-box fitr-highlight">
+                  <h2 className="tab-title">{activeTab.label}</h2>
+                  <p className="cause-subtitle">{activeTab.subtitle}</p>
+                </div>
+              ) : (
+                <>
+                  <h2>{activeTab.label}</h2>
+                  <p className="cause-subtitle">{activeTab.subtitle}</p>
+                </>
+              )}
             </div>
           </section>
         )}
@@ -639,6 +1113,126 @@ function App() {
               </p>
             </section>
           </>
+        ) : activeTabId === 'zakat-fitr' ? (
+          <section className="fitr-grid">
+            <div className="fitr-box fitr-title-box fitr-highlight">
+              <p className="fitr-title">زكاة الفطر (Zakat al-Fitr)</p>
+              <p className="fitr-title-note">
+                Due before Eid prayer. Paid once per person in the household.
+              </p>
+            </div>
+            <div className="fitr-box fitr-quote">
+              <div className="quote-card fitr-quote-card">
+                <p className="quote">
+                  <span className="quote-arabic">{zakatFitrQuoteArabic}</span>
+                  <span className="quote-translation">({zakatFitrQuoteTranslation})</span>
+                  <span className="quote-ref">{zakatFitrQuoteRef}</span>
+                </p>
+              </div>
+            </div>
+            <div className="fitr-box fitr-amount fitr-highlight">
+              <p className="fitr-amount-title">Per-person amount</p>
+              <span>£{zakatFitrAmount.toFixed(2)}</span>
+              <p className="fitr-amount-note">
+                For {currentYear}, based on the Saudi ruling and rounded up to the nearest GBP.
+              </p>
+            </div>
+            <div className="fitr-box fitr-input">
+              <div>
+                <p className="custom-title">Number of people</p>
+                <p className="custom-note">Enter how many people you are paying for.</p>
+              </div>
+              <div className="ramadan-input">
+                <span className="currency">#</span>
+                <input
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="People"
+                  value={zakatFitrPeople}
+                  onChange={(event) => {
+                    const value = event.target.value.replace(/[^0-9]/g, '')
+                    setZakatFitrPeople(value)
+                  }}
+                />
+              </div>
+            </div>
+            <button
+              className="amount-tile fitr-total"
+              disabled={!canPayZakatFitr}
+              onClick={() => {
+                if (!canPayZakatFitr) return
+                handleAmountSelect(zakatFitrTotal)
+              }}
+            >
+              <span className="fitr-pay">Pay</span>
+              <span className="amount-value">{formatAmount(zakatFitrTotal)}</span>
+              <span className="amount-label">Tap to pay Zakat al-Fitr</span>
+              <p className="fitr-steps-inline">
+                1. Enter people | 2. Review total | 3. Tap to pay
+              </p>
+            </button>
+          </section>
+        ) : activeTabId === 'special-appeals' ? (
+          <section className="appeal-grid">
+            <div className="tab-title-box fitr-highlight">
+              <h2 className="tab-title">{specialAppealName}</h2>
+            </div>
+            <div className="appeal-hero">
+              <div className="appeal-fill" style={{ width: `${specialAppealPercent}%` }} />
+              <div className="appeal-content">
+                <p className="appeal-label">Target</p>
+                <p className="appeal-amount">{formatAmount(specialAppealTarget)}</p>
+                <p className="appeal-progress">
+                  Raised {formatAmount(specialAppealProgress)} · {specialAppealPercent}% funded
+                </p>
+              </div>
+            </div>
+            <div className="appeal-actions">
+              {specialAppealAmounts.map((amount) => (
+                <button
+                  key={amount}
+                  className="amount-tile"
+                  onClick={() => {
+                    setPendingSpecialAppealAmount(amount)
+                    handleAmountSelect(amount)
+                  }}
+                >
+                  <span className="amount-value">{formatAmount(amount)}</span>
+                  <span className="amount-label">Tap to give</span>
+                </button>
+              ))}
+              <div className="custom-amount appeal-other">
+                <div>
+                  <p className="custom-title">Other amount</p>
+                  <p className="custom-note">Enter any amount.</p>
+                </div>
+                <div className="custom-input">
+                  <span className="currency">£</span>
+                  <input
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="Other amount"
+                    value={customAmount}
+                    onChange={(event) => {
+                      const value = event.target.value.replace(/[^0-9]/g, '')
+                      setCustomAmount(value)
+                    }}
+                  />
+                  <button
+                    className="custom-submit"
+                    onClick={() => {
+                      const normalized = Number.parseInt(customAmount, 10)
+                      if (!Number.isFinite(normalized) || normalized <= 0) return
+                      setPendingSpecialAppealAmount(normalized)
+                      handleAmountSelect(normalized)
+                    }}
+                  >
+                    Proceed
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
         ) : activeTabId === 'ramadan-iftaar' ? (
           <>
             <section className="ramadan-grid" aria-label="Ramadan iftaar days">
@@ -724,9 +1318,7 @@ function App() {
 
       <footer className="kiosk-footer">
         <div className="footer-left">
-          <p className="footer-subtitle">
-            Payments go directly to the masjid account. Charity no. {masjid.charityNumber}.
-          </p>
+          <p className="footer-subtitle">{charityLine}</p>
           <p className="footer-credit">
             Built with love by{' '}
             <a href="https://ijtihadlabs.org" target="_blank" rel="noreferrer">
@@ -735,8 +1327,8 @@ function App() {
           </p>
         </div>
         <div className="footer-right">
-          <p className="footer-location">{masjid.address}</p>
-          <p className="footer-location">{masjid.phone} · {masjid.email}</p>
+          {masjid.address && <p className="footer-location">{masjid.address}</p>}
+          {footerContact && <p className="footer-location">{footerContact}</p>}
         </div>
       </footer>
 
@@ -753,7 +1345,7 @@ function App() {
                   <button className="ghost" onClick={completeFlow}>
                     Cancel
                   </button>
-                  <button className="primary" onClick={() => setStage('success')}>
+                  <button className="primary" onClick={handlePaymentSuccess}>
                     Simulate payment success
                   </button>
                   <button className="ghost" onClick={() => setStage('declined')}>

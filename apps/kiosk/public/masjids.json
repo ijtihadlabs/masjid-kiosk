@@ -1,0 +1,22 @@
+{
+  "masjids": [
+    {
+      "slug": "al-madni",
+      "aliases": ["al-madani"],
+      "name": "Al-Madani Masjid",
+      "logoKey": "al-madni",
+      "address": "1 Whittle Parkway, Slough, Berkshire, SL1 6FE, United Kingdom",
+      "phone": "01628 669756",
+      "email": "masjid@al-madani.org",
+      "charityNumber": "1079416",
+      "location": "Slough, United Kingdom",
+      "tabs": ["daily-sadaqah", "zakat", "ramadan-iftaar"],
+      "ramadanDailyTarget": 300,
+      "sadaqahQuoteTranslation": "The example of those who spend their wealth in the way of Allah is like a seed which grows seven ears; in every ear is a hundred grains.",
+      "sadaqahQuoteRef": "Quran 2:261",
+      "zakatQuoteArabic": "خُذْ مِنْ أَمْوَالِهِمْ صَدَقَةً تُطَهِّرُهُمْ وَتُزَكِّيهِمْ بِهَا",
+      "zakatQuoteTranslation": "Take from their wealth a charity by which you purify them and cause them to grow.",
+      "zakatQuoteRef": "Quran 9:103"
+    }
+  ]
+}
