@@ -151,15 +151,16 @@ function formatAmount(amount: number) {
 }
 
 function App() {
+  const isLocalDemo =
+    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  const isPreviewDemo =
+    isLocalDemo || window.location.hostname === 'masjid-kiosk.ijtihadlabs.org'
+  const allTabIds = useMemo(() => baseTabs.map((tab) => tab.id), [])
   const [masjid, setMasjid] = useState<MasjidDetails>(defaultMasjid)
   const [masjidState, setMasjidState] = useState<'loading' | 'ready' | 'missing'>(
     'loading'
   )
-  const [visibleTabIds, setVisibleTabIds] = useState<string[]>([
-    'daily-sadaqah',
-    'zakat',
-    'ramadan-iftaar',
-  ])
+  const [visibleTabIds, setVisibleTabIds] = useState<string[]>(allTabIds)
   const [activeTabId, setActiveTabId] = useState(baseTabs[0].id)
   const [stage, setStage] = useState<Stage>('home')
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
@@ -340,6 +341,10 @@ function App() {
 
   useEffect(() => {
     const loadFromStorage = () => {
+      if (isPreviewDemo) {
+        applyVisibility(allTabIds)
+        return
+      }
       const stored = window.localStorage.getItem('kioskTabVisibility')
       if (!stored) return
       try {
@@ -942,9 +947,14 @@ function App() {
         </div>
         <div className="header-actions">
           <div className="status-pill">{statusLabel}</div>
-          <a className="admin-preview" href="/admin/">
-            Admin Preview
-          </a>
+          {isLocalDemo && (
+            <div className="admin-preview-wrap">
+              <a className="admin-preview" href="/admin/">
+                Admin Preview
+              </a>
+              <span className="demo-badge">Demo only</span>
+            </div>
+          )}
         </div>
       </header>
 

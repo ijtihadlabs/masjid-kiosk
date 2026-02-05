@@ -138,6 +138,17 @@ input {
   box-shadow: var(--shadow);
 }
 
+.admin-preview-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.demo-badge {
+  font-size: clamp(10px, 1.1vw, 12px);
+  color: var(--ink-soft);
+}
+
 
 .tab-strip {
   display: flex;
