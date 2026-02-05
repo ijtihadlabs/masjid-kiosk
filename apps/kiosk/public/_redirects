@@ -1,0 +1,3 @@
+/admin  /admin/ 301
+/admin/assets/*  /admin/assets/:splat 200
+/admin/*  /admin/index.html 200
